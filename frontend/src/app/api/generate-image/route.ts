@@ -5,14 +5,30 @@ import crypto from "crypto";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { text } = body;
+    const { prompt, negative_prompt, aspect_ratio, steps, guidance_scale } = body;
 
-    // TODO: Call your Image Generation API here
-    // For now, we'll just echo back the text
+    if (!prompt) {
+      return NextResponse.json(
+        { success: false, error: "Prompt is required" },
+        { status: 400 }
+      );
+    }
 
-    console.log(text);
+    console.log("Generating image with prompt:", prompt);
     const url = new URL("https://yd2696--sd-demo-model-generate.modal.run");
-    url.searchParams.set("prompt", text)
+    url.searchParams.set("prompt", prompt);
+    if (negative_prompt) {
+      url.searchParams.set("negative_prompt", negative_prompt);
+    }
+    if (aspect_ratio) {
+      url.searchParams.set("aspect_ratio", aspect_ratio);
+    }
+    if (steps) {
+      url.searchParams.set("steps", steps.toString());
+    }
+    if (guidance_scale) {
+      url.searchParams.set("guidance_scale", guidance_scale.toString());
+    }
     console.log("Requesting url: ", url.toString());
 
     const response = await fetch(url.toString(), {
@@ -24,7 +40,7 @@ export async function POST(request: Request) {
     });
     if (!response.ok) {
       const errorText = await response.text();
-      console.log("API resonse: ", errorText);
+      console.log("API response: ", errorText);
       throw new Error(
         `HTTP error! status: ${response.status}, message: ${errorText}`
       );
@@ -44,9 +60,12 @@ export async function POST(request: Request) {
 
     });
   } catch (error) {
-    console.log(error)
+    console.error("Error in generate-image route:", error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "Failed to process request";
     return NextResponse.json(
-      { success: false, error: "Failed to process request" },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
