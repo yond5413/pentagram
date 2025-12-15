@@ -43,8 +43,8 @@ interface CommentSectionProps {
   initialCount?: number
 }
 
-export function CommentSection({ imageId, initialComments = [] }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>(initialComments)
+export function CommentSection({ imageId, initialComments }: CommentSectionProps) {
+  const [comments, setComments] = useState<Comment[]>(initialComments || [])
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
