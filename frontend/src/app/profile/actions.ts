@@ -68,9 +68,6 @@ export async function getProfile(username: string) {
     if (error || !profile) return null
 
     // Filter out deleted images for all profiles (including own profile)
-    const { data: { user } } = await supabase.auth.getUser()
-    const isOwnProfile = user?.id === profile.id
-    
     // Always filter deleted images for accurate post count
     if (profile.images) {
         profile.images = profile.images.filter((img: { is_deleted?: boolean }) => !img.is_deleted)

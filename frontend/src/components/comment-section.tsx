@@ -63,7 +63,7 @@ export function CommentSection({ imageId, initialComments = [] }: CommentSection
     } else {
       setComments(initialComments)
     }
-  }, [imageId])
+  }, [imageId, initialComments])
 
   useEffect(() => {
     async function getCurrentUser() {
@@ -172,13 +172,6 @@ export function CommentSection({ imageId, initialComments = [] }: CommentSection
     })
   }
 
-  const countAllComments = (commentList: Comment[]): number => {
-    return commentList.reduce((count, comment) => {
-      return count + 1 + (comment.replies ? countAllComments(comment.replies) : 0)
-    }, 0)
-  }
-
-  const totalComments = countAllComments(comments)
   const displayedComments = showAll ? comments : comments.slice(0, 3)
   const hasMoreComments = comments.length > 3
 
