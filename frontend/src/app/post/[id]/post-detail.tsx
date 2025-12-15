@@ -61,7 +61,7 @@ export function PostDetail({ post }: PostDetailProps) {
 
     try {
       await toggleLike(post.id)
-    } catch (e) {
+    } catch {
       // Revert on error
       setLiked(previousLiked)
       setLikesCount(previousCount)

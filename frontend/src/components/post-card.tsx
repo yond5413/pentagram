@@ -41,7 +41,7 @@ export function PostCard({ image }: PostCardProps) {
 
         try {
             await toggleLike(image.id)
-        } catch (e) {
+        } catch {
             // Revert on error
             setLiked(previousLiked)
             setLikesCount(previousCount)

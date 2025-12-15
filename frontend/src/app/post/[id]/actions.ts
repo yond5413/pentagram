@@ -101,14 +101,26 @@ export async function deletePost(postId: string) {
     throw new Error('Failed to delete post')
   }
 
+  // Transform profiles from array to single object or null
+  let profile: { username: string } | null = null
+  if (post.profiles) {
+    if (Array.isArray(post.profiles) && post.profiles.length > 0) {
+      profile = { username: post.profiles[0].username }
+    } else if (!Array.isArray(post.profiles)) {
+      profile = { username: (post.profiles as { username: string }).username }
+    }
+  }
+
   // Revalidate relevant paths
   revalidatePath('/feed')
   revalidatePath('/explore')
-  revalidatePath(`/profile/${(post.profiles as any)?.username}`)
+  if (profile?.username) {
+    revalidatePath(`/profile/${profile.username}`)
+  }
   revalidatePath(`/post/${postId}`)
 
   // Return redirect path for client-side navigation
-  const username = (post.profiles as any)?.username
+  const username = profile?.username
   return { 
     success: true, 
     redirectTo: username ? `/profile/${username}` : '/feed' 

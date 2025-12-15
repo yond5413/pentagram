@@ -4,20 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface ExploreImage {
-  id: string
-  image_url: string
-  prompt: string
-  created_at: string
-  likesCount: number
-  commentsCount: number
-  userHasLiked: boolean
-  profiles: {
-    username: string
-    avatar_url: string | null
-  } | null
-}
+import type { ExploreImage } from './actions'
 
 interface ExploreGridProps {
   images: ExploreImage[]

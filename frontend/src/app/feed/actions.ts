@@ -45,34 +45,9 @@ export async function getFeedImages() {
 
     // For MVP: Get latest public images
     // TODO: Implement the popularity score sorting
-    const { data: images, error } = await supabase
-        .from('images')
-        .select(`
-            *,
-            profiles:user_id (
-                username,
-                avatar_url
-            ),
-            likes:image_likes(count),
-            comments:comments(count),
-            user_has_liked:image_likes!inner(user_id)
-        `)
-        .eq('is_public', true)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-    if (error) {
-        console.error("Error fetching feed:", error)
-        return []
-    }
-
     // Process the result to add a boolean for user_has_liked 
     // This is tricky with simple select, often requires a separate query or auth.uid() trick in view
     // For now, let's fetch strictly for public view and maybe hydrate client side or improve query
-
-    // Simplification for now:
-    const { data: { user } } = await supabase.auth.getUser()
 
     // We can't easily filter the nested image_likes!inner by current user in the same query 
     // without filtering the parent rows if we're not careful.
@@ -208,11 +183,34 @@ export async function getComments(imageId: string, limit: number = 10) {
         return []
     }
 
-    // Add isOwner flag if user is logged in
-    const commentsWithOwnership = (comments || []).map(comment => ({
-        ...comment,
-        isOwner: user?.id === comment.user_id,
-    }))
+    // Add isOwner flag and transform profiles from array to single object
+    const commentsWithOwnership = (comments || []).map(comment => {
+        // Transform profiles from array to single object or null
+        let profile: { username: string; avatar_url: string | null } | null = null
+        if (comment.profiles) {
+            if (Array.isArray(comment.profiles) && comment.profiles.length > 0) {
+                profile = {
+                    username: comment.profiles[0].username,
+                    avatar_url: comment.profiles[0].avatar_url,
+                }
+            } else if (!Array.isArray(comment.profiles)) {
+                const profileData = comment.profiles as { username: string; avatar_url: string | null }
+                profile = {
+                    username: profileData.username,
+                    avatar_url: profileData.avatar_url,
+                }
+            }
+        }
+
+        return {
+            id: comment.id,
+            content: comment.content,
+            created_at: comment.created_at,
+            user_id: comment.user_id,
+            isOwner: user?.id === comment.user_id,
+            profiles: profile,
+        }
+    })
 
     return commentsWithOwnership
 }

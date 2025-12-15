@@ -72,7 +72,7 @@ export async function getProfile(username: string) {
     const isOwnProfile = user?.id === profile.id
     
     if (profile.images && !isOwnProfile) {
-        profile.images = profile.images.filter((img: any) => !img.is_deleted)
+        profile.images = profile.images.filter((img: { is_deleted?: boolean }) => !img.is_deleted)
     }
 
     // Get accurate follower and following counts

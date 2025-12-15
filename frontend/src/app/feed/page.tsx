@@ -91,9 +91,38 @@ export default async function FeedPage() {
 
     return (
         <div className="container max-w-xl py-8 space-y-8">
-            {imagesWithCounts.map((image: any) => (
-                <PostCard key={image.id} image={image} />
-            ))}
+            {imagesWithCounts.map((image) => {
+                // Transform profiles from array to single object or null
+                let profile: { username: string; avatar_url: string | null } | null = null
+                if (image.profiles) {
+                    if (Array.isArray(image.profiles) && image.profiles.length > 0) {
+                        profile = {
+                            username: image.profiles[0].username,
+                            avatar_url: image.profiles[0].avatar_url,
+                        }
+                    } else if (!Array.isArray(image.profiles)) {
+                        const profileData = image.profiles as { username: string; avatar_url: string | null }
+                        profile = {
+                            username: profileData.username,
+                            avatar_url: profileData.avatar_url,
+                        }
+                    }
+                }
+                return (
+                    <PostCard 
+                        key={image.id} 
+                        image={{
+                            id: image.id,
+                            image_url: image.image_url,
+                            prompt: image.prompt,
+                            likesCount: image.likesCount,
+                            commentsCount: image.commentsCount,
+                            userHasLiked: image.userHasLiked,
+                            profiles: profile,
+                        }} 
+                    />
+                )
+            })}
         </div>
     )
 }

@@ -31,7 +31,7 @@ interface ProfileGridProps {
   username: string
 }
 
-export function ProfileGrid({ images, isOwnProfile, username }: ProfileGridProps) {
+export function ProfileGrid({ images, isOwnProfile }: ProfileGridProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)

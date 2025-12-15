@@ -2,7 +2,22 @@
 
 import { createClient } from '@/utils/supabase/server'
 
-export async function getTrendingImages(timePeriod: 'today' | 'week' | 'month' | 'all' = 'week') {
+export interface ExploreImage {
+  id: string
+  image_url: string
+  prompt: string
+  created_at: string
+  likesCount: number
+  commentsCount: number
+  trendingScore: number
+  userHasLiked: boolean
+  profiles: {
+    username: string
+    avatar_url: string | null
+  } | null
+}
+
+export async function getTrendingImages(timePeriod: 'today' | 'week' | 'month' | 'all' = 'week'): Promise<ExploreImage[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -95,7 +110,7 @@ export async function getTrendingImages(timePeriod: 'today' | 'week' | 'month' |
 
   // Calculate trending score and attach counts
   const now = Date.now()
-  const imagesWithScores = images.map(image => {
+  const imagesWithScores: ExploreImage[] = images.map(image => {
     const likesCount = likesCountMap.get(image.id) || 0
     const commentsCount = commentsCountMap.get(image.id) || 0
     const createdAt = new Date(image.created_at).getTime()
@@ -105,12 +120,33 @@ export async function getTrendingImages(timePeriod: 'today' | 'week' | 'month' |
     // This gives more weight to recent content and comments
     const trendingScore = (likesCount * 1.0 + commentsCount * 2.0) / (hoursSinceCreation + 1)
 
+    // Transform profiles from array to single object or null
+    let profile: { username: string; avatar_url: string | null } | null = null
+    if (image.profiles) {
+      if (Array.isArray(image.profiles) && image.profiles.length > 0) {
+        profile = {
+          username: image.profiles[0].username,
+          avatar_url: image.profiles[0].avatar_url,
+        }
+      } else if (!Array.isArray(image.profiles)) {
+        const profileData = image.profiles as { username: string; avatar_url: string | null }
+        profile = {
+          username: profileData.username,
+          avatar_url: profileData.avatar_url,
+        }
+      }
+    }
+
     return {
-      ...image,
+      id: image.id,
+      image_url: image.image_url,
+      prompt: image.prompt,
+      created_at: image.created_at,
       likesCount,
       commentsCount,
       trendingScore,
       userHasLiked: userLikedImages.has(image.id),
+      profiles: profile,
     }
   })
 
