@@ -15,3 +15,4 @@ export default async function PostPage(props: { params: Promise<{ id: string }> 
   return <PostDetail post={post} />
 }
 
+

@@ -67,13 +67,17 @@ export async function getProfile(username: string) {
 
     if (error || !profile) return null
 
-    // Filter out deleted images if not own profile
+    // Filter out deleted images for all profiles (including own profile)
     const { data: { user } } = await supabase.auth.getUser()
     const isOwnProfile = user?.id === profile.id
     
-    if (profile.images && !isOwnProfile) {
+    // Always filter deleted images for accurate post count
+    if (profile.images) {
         profile.images = profile.images.filter((img: { is_deleted?: boolean }) => !img.is_deleted)
     }
+
+    // Calculate accurate post count excluding deleted posts
+    const postsCount = profile.images ? profile.images.length : 0
 
     // Get accurate follower and following counts
     const { count: followersCount } = await supabase
@@ -88,6 +92,7 @@ export async function getProfile(username: string) {
 
     return {
         ...profile,
+        postsCount,
         followersCount: followersCount || 0,
         followingCount: followingCount || 0,
     }

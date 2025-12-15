@@ -88,7 +88,7 @@ export async function getFeedImages() {
     }))
 }
 
-export async function addComment(imageId: string, content: string) {
+export async function addComment(imageId: string, content: string, parentCommentId?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -104,13 +104,24 @@ export async function addComment(imageId: string, content: string) {
         throw new Error('Comment is too long (max 500 characters)')
     }
 
+    const commentData: {
+        image_id: string
+        user_id: string
+        content: string
+        parent_comment_id?: string
+    } = {
+        image_id: imageId,
+        user_id: user.id,
+        content: content.trim(),
+    }
+
+    if (parentCommentId) {
+        commentData.parent_comment_id = parentCommentId
+    }
+
     const { error } = await supabase
         .from('comments')
-        .insert({
-            image_id: imageId,
-            user_id: user.id,
-            content: content.trim(),
-        })
+        .insert(commentData)
 
     if (error) {
         console.error('Error adding comment:', error)
@@ -119,6 +130,7 @@ export async function addComment(imageId: string, content: string) {
 
     revalidatePath('/feed')
     revalidatePath('/explore')
+    revalidatePath(`/post/${imageId}`)
 }
 
 export async function deleteComment(commentId: string) {
@@ -129,10 +141,10 @@ export async function deleteComment(commentId: string) {
         throw new Error('Unauthorized')
     }
 
-    // Verify the comment belongs to the user
+    // Verify the comment belongs to the user and get image_id for revalidation
     const { data: comment, error: fetchError } = await supabase
         .from('comments')
-        .select('user_id')
+        .select('user_id, image_id')
         .eq('id', commentId)
         .single()
 
@@ -143,6 +155,8 @@ export async function deleteComment(commentId: string) {
     if (comment.user_id !== user.id) {
         throw new Error('Unauthorized to delete this comment')
     }
+
+    const imageId = comment.image_id
 
     const { error } = await supabase
         .from('comments')
@@ -156,12 +170,31 @@ export async function deleteComment(commentId: string) {
 
     revalidatePath('/feed')
     revalidatePath('/explore')
+    if (imageId) {
+        revalidatePath(`/post/${imageId}`)
+    }
 }
 
-export async function getComments(imageId: string, limit: number = 10) {
+interface CommentWithReplies {
+    id: string
+    content: string
+    created_at: string
+    user_id: string
+    parent_comment_id: string | null
+    isOwner: boolean
+    profiles: {
+        username: string
+        avatar_url: string | null
+    } | null
+    replies?: CommentWithReplies[]
+    replyCount?: number
+}
+
+export async function getComments(imageId: string, limit: number = 50): Promise<CommentWithReplies[]> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Fetch all comments for this image (including replies)
     const { data: comments, error } = await supabase
         .from('comments')
         .select(`
@@ -169,22 +202,26 @@ export async function getComments(imageId: string, limit: number = 10) {
             content,
             created_at,
             user_id,
+            parent_comment_id,
             profiles:user_id (
                 username,
                 avatar_url
             )
         `)
         .eq('image_id', imageId)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+        .order('created_at', { ascending: true }) // Oldest first for better reply ordering
 
     if (error) {
         console.error('Error fetching comments:', error)
         return []
     }
 
-    // Add isOwner flag and transform profiles from array to single object
-    const commentsWithOwnership = (comments || []).map(comment => {
+    if (!comments || comments.length === 0) {
+        return []
+    }
+
+    // Transform profiles and add ownership flag
+    const commentsWithOwnership: CommentWithReplies[] = (comments || []).map(comment => {
         // Transform profiles from array to single object or null
         let profile: { username: string; avatar_url: string | null } | null = null
         if (comment.profiles) {
@@ -207,10 +244,57 @@ export async function getComments(imageId: string, limit: number = 10) {
             content: comment.content,
             created_at: comment.created_at,
             user_id: comment.user_id,
+            parent_comment_id: comment.parent_comment_id || null,
             isOwner: user?.id === comment.user_id,
             profiles: profile,
+            replies: [],
+            replyCount: 0,
         }
     })
 
-    return commentsWithOwnership
+    // Build hierarchical structure
+    const commentMap = new Map<string, CommentWithReplies>()
+    const topLevelComments: CommentWithReplies[] = []
+
+    // First pass: create map of all comments
+    commentsWithOwnership.forEach(comment => {
+        commentMap.set(comment.id, comment)
+    })
+
+    // Second pass: build tree structure
+    commentsWithOwnership.forEach(comment => {
+        if (comment.parent_comment_id) {
+            // This is a reply
+            const parent = commentMap.get(comment.parent_comment_id)
+            if (parent) {
+                if (!parent.replies) {
+                    parent.replies = []
+                }
+                parent.replies.push(comment)
+                parent.replyCount = (parent.replyCount || 0) + 1
+            }
+        } else {
+            // This is a top-level comment
+            topLevelComments.push(comment)
+        }
+    })
+
+    // Sort top-level comments by created_at (newest first)
+    topLevelComments.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
+    // Sort replies within each comment (oldest first for better readability)
+    const sortReplies = (comment: CommentWithReplies) => {
+        if (comment.replies && comment.replies.length > 0) {
+            comment.replies.sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            )
+            comment.replies.forEach(reply => sortReplies(reply))
+        }
+    }
+    topLevelComments.forEach(comment => sortReplies(comment))
+
+    // Apply limit to top-level comments only
+    return topLevelComments.slice(0, limit)
 }

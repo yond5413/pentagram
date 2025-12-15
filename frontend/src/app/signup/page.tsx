@@ -24,7 +24,7 @@ export default async function SignupPage(props: { searchParams: Promise<{ [key: 
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+                            <Input id="email" name="email" type="email" placeholder="me@example.com" required />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>

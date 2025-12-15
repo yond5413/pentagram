@@ -8,9 +8,11 @@ import os
 -MODAL endpoints like fastapi under the hood
 '''
 def download_model():
-    from diffusers import AutoPipelineForText2Image
+    from diffusers import  DiffusionPipeline
     import torch
-    AutoPipelineForText2Image.from_pretrained("stabilityai/sdxl-turbo",torch_dtype = torch.float16,variant="fp16")
+    DiffusionPipeline.from_pretrained(
+            "Qwen/Qwen-Image",
+            torch_dtype = torch.bfloat16)
     
 ## MODAL stuff
 image = (modal.Image.debian_slim()
@@ -28,12 +30,11 @@ app = modal.App("sd-demo",image=image)
 class Model:
     @modal.enter()
     def load_weights(self):
-        from diffusers import AutoPipelineForText2Image
+        from diffusers import DiffusionPipeline
         import torch
-        self.pipe =  AutoPipelineForText2Image.from_pretrained(
-            "stabilityai/sdxl-turbo",
-            torch_dtype = torch.float16,
-            variant="fp16")
+        self.pipe =  DiffusionPipeline.from_pretrained(
+            "Qwen/Qwen-Image",
+            torch_dtype = torch.bfloat16)
         
         self.pipe.to("cuda")
         self.API_KEY= os.environ["API_KEY"]
@@ -46,7 +47,7 @@ class Model:
                 status_code = 401,
                 detail="Unauthorized"
             )
-        image = self.pipe(prompt,num_inference_steps=5,guidance_scale=0.0).images[0]
+        image = self.pipe(prompt,num_inference_steps=1,guidance_scale=0.0).images[0]
         buffer = io.BytesIO()
         image.save(buffer,format="JPEG")
         return Response(content=buffer.getvalue(),media_type="image/jpeg")

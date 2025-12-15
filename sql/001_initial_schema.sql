@@ -242,3 +242,4 @@ create table if not exists generation_metrics (
 
 alter table generation_metrics enable row level security;
 
+

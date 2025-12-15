@@ -20,7 +20,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ [key: s
                     <CardContent className="grid gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+                            <Input id="email" name="email" type="email" placeholder="me@example.com" required />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>

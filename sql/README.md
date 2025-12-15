@@ -24,3 +24,4 @@ Copy and paste the SQL from each migration file into the Supabase SQL Editor.
 
 Migrations should be applied in numerical order (001, 002, etc.).
 
+

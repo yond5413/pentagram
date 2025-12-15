@@ -46,3 +46,4 @@ create trigger on_auth_user_created
 grant usage on schema public to postgres, anon, authenticated, service_role;
 grant all on public.profiles to postgres, anon, authenticated, service_role;
 
+

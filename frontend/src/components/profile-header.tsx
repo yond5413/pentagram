@@ -14,6 +14,7 @@ interface ProfileHeaderProps {
         bio?: string | null
         display_name?: string | null
         images?: Array<unknown>
+        postsCount?: number
         followers?: Array<{ count: number }>
         following?: Array<{ count: number }>
     }
@@ -61,7 +62,7 @@ export function ProfileHeader({ profile, currentUser, isFollowing }: ProfileHead
                 </div>
                 <div className="flex gap-6 text-sm">
                     <div className="flex gap-1">
-                        <span className="font-bold">{profile.images?.length || 0}</span> posts
+                        <span className="font-bold">{profile.postsCount ?? profile.images?.length ?? 0}</span> posts
                     </div>
                     <div className="flex gap-1">
                         <span className="font-bold">{followerCount}</span> followers
